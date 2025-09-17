@@ -53,7 +53,23 @@ threads, ensuring your media remains the star of the show.
 To start the bot, run the following command in the project root:
 
 ```bash
-deno run --allow-net --allow-read --allow-env main.ts
+deno task start
+```
+
+## Deployment
+
+For easier deployment, you can compile the bot into a single executable using
+the `prepare` task. This will create a file named `no-chatter` in the project
+root.
+
+```bash
+deno task prepare
+```
+
+Once the executable is created, you can run it directly:
+
+```bash
+./no-chatter
 ```
 
 ## Contributing
