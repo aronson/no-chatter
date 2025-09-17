@@ -1,0 +1,14 @@
+### Deno ###
+/.idea/
+/.vscode/
+
+/node_modules
+
+/no-chatter
+
+.env
+*.orig
+*.pyc
+*.swp
+
+channels.json
