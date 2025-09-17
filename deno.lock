@@ -1,7 +1,8 @@
 {
   "version": "5",
   "specifiers": {
-    "npm:discord.js@14": "14.22.0"
+    "npm:discord.js@14": "14.22.0",
+    "npm:pkapi.js@7.4.0": "7.4.0"
   },
   "npm": {
     "@discordjs/builders@1.11.3": {
@@ -87,6 +88,24 @@
     "@vladfrangu/async_event_emitter@2.4.6": {
       "integrity": "sha512-RaI5qZo6D2CVS6sTHFKg1v5Ohq/+Bo2LZ5gzUEwZ/WkHhwtGTCB/sVLw8ijOkAUxasZ+WshN/Rzj4ywsABJ5ZA=="
     },
+    "@vvo/tzdb@6.183.0": {
+      "integrity": "sha512-6C/4Lvv7jVHkfAsIEOMccZ4w1zmGAQxUVfdjZiYNu68+NMrFBVKyZZnmXeOWySihqDPxjO7FEbOpBuAf/ASKpg=="
+    },
+    "axios@0.21.4": {
+      "integrity": "sha512-ut5vewkiu8jjGBdqpM44XxjuCjq9LAKeHVmoVfHVzy8eHgxxq8SbAVQNovDA8mVi05kP0Ea/n/UzcSHcTJQfNg==",
+      "dependencies": [
+        "follow-redirects"
+      ]
+    },
+    "chrono-node@2.8.4": {
+      "integrity": "sha512-F+Rq88qF3H2dwjnFrl3TZrn5v4ZO57XxeQ+AhuL1C685So1hdUV/hT/q8Ja5UbmPYEZfx8VrxFDa72Dgldcxpg==",
+      "dependencies": [
+        "dayjs"
+      ]
+    },
+    "dayjs@1.11.18": {
+      "integrity": "sha512-zFBQ7WFRvVRhKcWoUh+ZA1g2HVgUbsZm9sbddh8EC5iv93sui8DVVz1Npvz+r6meo9VKfa8NyLWBsQK1VvIKPA=="
+    },
     "discord-api-types@0.38.25": {
       "integrity": "sha512-3edaLHuCdzzfTL1OCpl98G3mrlf+45FpxY+8f+5dRLnZD8R6QzIhapoCefqz6mhaygD+iqTVLtD4u6j57PRiFw=="
     },
@@ -111,6 +130,9 @@
     "fast-deep-equal@3.1.3": {
       "integrity": "sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q=="
     },
+    "follow-redirects@1.15.11": {
+      "integrity": "sha512-deG2P0JfjrTxl50XGCDyfI97ZGVCxIpfKYmfyrQ54n5FO/0gfIES8C/Psl6kWVDolizcaaxZJnTS0QSMxvnsBQ=="
+    },
     "lodash.snakecase@4.1.1": {
       "integrity": "sha512-QZ1d4xoBHYUeuouhEq3lk3Uq7ldgyFXGBhg04+oRLnIz8o9T65Eh+8YdroUwn846zchkA9yDsDl5CVVaV2nqYw=="
     },
@@ -119,6 +141,19 @@
     },
     "magic-bytes.js@1.12.1": {
       "integrity": "sha512-ThQLOhN86ZkJ7qemtVRGYM+gRgR8GEXNli9H/PMvpnZsE44Xfh3wx9kGJaldg314v85m+bFW6WBMaVHJc/c3zA=="
+    },
+    "pkapi.js@7.4.0": {
+      "integrity": "sha512-8miV5OGIx28WCz/b6usRuBu1qwJwvAb1QM2rARfb+MlrJGRfUGxJeUGQ7rRnqWXwHmmLlDL1jwO4mF4FEkuj4A==",
+      "dependencies": [
+        "@vvo/tzdb",
+        "axios",
+        "chrono-node",
+        "tinycolor2",
+        "valid-url"
+      ]
+    },
+    "tinycolor2@1.6.0": {
+      "integrity": "sha512-XPaBkWQJdsf3pLKJV9p4qN/S+fm2Oj8AIPo1BTUhg5oxkvm9+SVEGFdhyOz7tTdUTfvxMiAs4sp6/eZO2Ew+pw=="
     },
     "ts-mixer@6.0.4": {
       "integrity": "sha512-ufKpbmrugz5Aou4wcr5Wc1UUFWOLhq+Fm6qa6P0w0K5Qw2yhaUoiWszhCVuNQyNwrlGiscHOmqYoAox1PtvgjA=="
@@ -132,6 +167,9 @@
     "undici@6.21.3": {
       "integrity": "sha512-gBLkYIlEnSp8pFbT64yFgGE6UIB9tAkhukC23PmMDCe5Nd+cRqKxSjw5y54MK2AZMgZfJWMaNE4nYUHgi1XEOw=="
     },
+    "valid-url@1.0.9": {
+      "integrity": "sha512-QQDsV8OnSf5Uc30CKSwG9lnhMPe6exHtTXLRYX8uMwKENy640pU+2BgBL0LRbDh/eYRahNCS7aewCx0wf3NYVA=="
+    },
     "ws@8.18.3": {
       "integrity": "sha512-PEIGCY5tSlUt50cqyMXfCzX+oOPqN0vuGqWzbcJ2xvnkzkq46oOpz7dQaTDBdfICb4N14+GARUDw2XV2N4tvzg=="
     }
@@ -144,7 +182,8 @@
   },
   "workspace": {
     "dependencies": [
-      "npm:discord.js@14"
+      "npm:discord.js@14",
+      "npm:pkapi.js@7.4.0"
     ]
   }
 }

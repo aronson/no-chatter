@@ -37,7 +37,12 @@ threads, ensuring your media remains the star of the show.
    add your Discord bot token:
    ```
    BOT_TOKEN=your_bot_token_here
+   PK_TOKEN=your_pluralkit_token_here
    ```
+
+   > [!NOTE]
+   > The `PK_TOKEN` is optional, but recommended to avoid rate limits when
+   > interacting with the PluralKit API.
 
 3. **Create a `channels.json` file:** Create a `channels.json` file in the root
    of the project and add the IDs of the channels you want the bot to monitor:
