@@ -46,86 +46,45 @@ async function loadChannels() {
   }
 }
 
-// --- PLURALKIT SUPPORT ---
-/**
- * Checks if a message was handled by PluralKit.
- * Waits 300ms before checking the API to allow for proxying.
- * @param message The message to check.
- * @returns True if the message is a PluralKit message, false otherwise.
- */
-async function isPluralKitMessage(message: Message): Promise<boolean> {
-  // Wait 300ms to give PluralKit time to process and proxy the message.
-  await new Promise((resolve) => setTimeout(resolve, 300));
+// --- PLURALKIT & MESSAGE PROCESSING LOGIC ---
+const pendingMessages = new Map<
+  string,
+  { originalMessage: Message; timestamp: number }
+>();
+const PENDING_MESSAGE_TIMEOUT_MS = 1500; // Time to wait for a PK proxy.
+
+async function handleMoveToThread(
+  originalMessage: Message,
+  displayNameForThread: string,
+) {
   try {
-    const response = await fetch(
-      `https://api.pluralkit.me/v2/messages/${message.id}`,
-    );
-    // If response.ok is true (status 200-299), the message exists in PluralKit's database.
-    // This means it was a proxy message that has now been replaced.
-    if (response.ok) {
-        console.log(`Message ${message.id} was identified as a PluralKit message. Ignoring.`);
-        return true;
-    }
-    return false;
-  } catch (error) {
-    console.error("Error checking PluralKit API:", error.message);
-    // If the API call fails, assume it's not a PK message to be safe.
-    return false;
-  }
-}
-
-// --- EVENT HANDLERS ---
-client.once(Events.ClientReady, (readyClient) => {
-  console.log(`Ready! Logged in as ${readyClient.user.tag}`);
-});
-
-client.on(Events.MessageCreate, async (message: Message) => {
-  // Ignore bots and system messages
-  if (message.author.bot || !message.guild) return;
-
-  // Check if the message is in a designated media-only channel
-  if (!mediaChannelIds.includes(message.channel.id)) return;
-
-  // This is a media-only channel, so check if the message is media.
-  // If it has attachments or embeds, it's valid, so we ignore it.
-  const isMedia = message.attachments.size > 0 || message.embeds.length > 0;
-  if (isMedia) return;
-
-  // Check if the message was handled by PluralKit. If so, ignore it.
-  if (await isPluralKitMessage(message)) {
-    return;
-  }
-
-  // If we're here, it's a text-only message in a media channel.
-  // We need to move it to a thread.
-
-  try {
-    const channel = message.channel as TextChannel;
+    const channel = originalMessage.channel as TextChannel;
     let targetMessage = null;
 
-    // 1. Find the target message to create a thread under.
-    if (message.type === MessageType.Reply && message.reference?.messageId) {
+    if (
+      originalMessage.type === MessageType.Reply &&
+      originalMessage.reference?.messageId
+    ) {
       targetMessage = await channel.messages.fetch(
-        message.reference.messageId,
+        originalMessage.reference.messageId,
       );
     } else {
       const recentMessages = await channel.messages.fetch({ limit: 10 });
-      targetMessage = recentMessages.find(
-        (m) => m.attachments.size > 0 || m.embeds.length > 0,
+      targetMessage = recentMessages.find((m) =>
+        m.attachments.size > 0 || m.embeds.length > 0
       ) ?? null;
     }
 
     if (!targetMessage) {
-      await message.author.send(
-        `Your message in <#${channel.id}> was removed because it's a media-only channel and there wasn't a recent media post to start a discussion thread under.\n\n> ${message.content}`,
+      await originalMessage.author.send(
+        `Your message in <#${channel.id}> was removed because it's a media-only channel and there wasn't a recent media post to start a discussion thread under.\n\n> ${originalMessage.content}`,
       ).catch(() =>
-        console.warn(`Could not DM user ${message.author.id}.`)
+        console.warn(`Could not DM user ${originalMessage.author.id}.`)
       );
-      await message.delete();
+      await originalMessage.delete().catch(() => {}); // Also delete the original message
       return;
     }
 
-    // 2. Find or create the thread.
     let thread: ThreadChannel | null = targetMessage.thread;
     if (!thread) {
       thread = await targetMessage.startThread({
@@ -134,21 +93,107 @@ client.on(Events.MessageCreate, async (message: Message) => {
       });
     }
 
-    // 3. Post the user's message content into the thread.
     await thread.send({
-      content: `**${message.author.displayName}**: ${message.content}`,
+      content: `**${displayNameForThread}**: ${originalMessage.content}`,
       allowedMentions: { parse: [] },
     });
 
-    // 4. DM the user with a link to the thread.
-    await message.author.send(
-      `Your message in <#${channel.id}> has been moved to a discussion thread to keep the channel clean. You can find it here: ${thread.url}\n\n> ${message.content}`,
-    ).catch(() => console.warn(`Could not DM user ${message.author.id}.`));
+    await originalMessage.author.send(
+      `Your message in <#${channel.id}> has been moved to a discussion thread to keep the channel clean. You can find it here: ${thread.url}\n\n> ${originalMessage.content}`,
+    ).catch(() =>
+      console.warn(`Could not DM user ${originalMessage.author.id}.`)
+    );
 
-    // 5. Delete the original message.
-    await message.delete();
+    await originalMessage.delete().catch(() => {}); // Ignore bad deletes
   } catch (error) {
-    console.error("Failed to process message:", error);
+    console.error("handleMoveToThread failed:", error);
+  }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function handleProxiedMessage(proxyMessage: Message) {
+  try {
+    let originalAuthorId = proxyMessage.author.id;
+    const response = await fetch(
+      `https://api.pluralkit.me/v2/messages/${proxyMessage.id}`,
+    );
+    if (response.ok) {
+      const pkData = await response.json();
+      originalAuthorId = pkData.sender;
+      const displayName = `${pkData.member.name} (${pkData.system.tag})`;
+      const key = `${originalAuthorId}-${proxyMessage.channel.id}`;
+      const pending = pendingMessages.get(key);
+      if (pending) {
+        pendingMessages.delete(key);
+
+        await sleep(2000);
+
+        await handleMoveToThread(pending.originalMessage, displayName);
+
+        try {
+          await proxyMessage.delete(); // Delete the proxied message
+        } catch (error) {
+          // Ignore failed deletes on Discord's side
+          console.error("Failed to delete message:", error);
+        }
+      }
+    } else {
+      // Not a PK message, maybe another bot using webhooks?
+      const key = `${originalAuthorId}-${proxyMessage.channel.id}`;
+      const pending = pendingMessages.get(key);
+      if (pending) {
+        pendingMessages.delete(key);
+      }
+      return;
+    }
+  } catch (error) {
+    console.error("Error handling proxied message:", error);
+  }
+}
+
+setInterval(async () => {
+  const now = Date.now();
+  for (
+    const [key, { originalMessage, timestamp }] of pendingMessages.entries()
+  ) {
+    if (now - timestamp > PENDING_MESSAGE_TIMEOUT_MS) {
+      pendingMessages.delete(key);
+      await handleMoveToThread(
+        originalMessage,
+        originalMessage.author.displayName,
+      );
+    }
+  }
+}, 500);
+
+// --- EVENT HANDLERS ---
+client.once(Events.ClientReady, (readyClient) => {
+  console.log(`Ready! Logged in as ${readyClient.user.tag}`);
+});
+
+client.on(Events.MessageCreate, async (message: Message) => {
+  if ((message.author.bot && !message.webhookId) || !message.guild) return;
+  if (!mediaChannelIds.includes(message.channel.id)) return;
+  const isMedia = message.attachments.size > 0 || message.embeds.length > 0;
+  if (isMedia) return;
+
+  const singleLinkRegex = new RegExp(
+    /^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_.~+#?&//=]*)$/i,
+  );
+  if (singleLinkRegex.test(message.content)) return;
+
+  // At this point, it's a text-only message in a media channel.
+  if (message.webhookId) {
+    await handleProxiedMessage(message);
+  } else {
+    const key = `${message.author.id}-${message.channel.id}`;
+    pendingMessages.set(key, {
+      originalMessage: message,
+      timestamp: Date.now(),
+    });
   }
 });
 
@@ -159,4 +204,4 @@ async function start() {
   await client.login(BOT_TOKEN);
 }
 
-start();
+await start();
