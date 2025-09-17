@@ -33,25 +33,34 @@ threads, ensuring your media remains the star of the show.
    cd no-chatter
    ```
 
-2. **Create a `.env` file:** Create a `.env` file in the root of the project and
-   add your Discord bot token:
-   ```
-   BOT_TOKEN=your_bot_token_here
-   PK_TOKEN=your_pluralkit_token_here
-   ```
+## Configuration
 
-   > [!NOTE]
-   > The `PK_TOKEN` is optional, but recommended to avoid rate limits when
-   > interacting with the PluralKit API.
+Before running the bot, you need to configure it by setting up environment variables and specifying the channels to monitor.
 
-3. **Create a `channels.json` file:** Create a `channels.json` file in the root
-   of the project and add the IDs of the channels you want the bot to monitor:
-   ```json
-   [
-     "channel_id_1",
-     "channel_id_2"
-   ]
-   ```
+### 1. Environment Variables
+
+Create a `.env` file in the root of the project. This file is used to store sensitive information like API tokens.
+
+```
+BOT_TOKEN=your_bot_token_here
+PK_TOKEN=your_pluralkit_token_here
+LOG_LEVEL=info
+```
+
+-   `BOT_TOKEN` (required): Your Discord bot token.
+-   `PK_TOKEN` (optional): Your PluralKit token. This is recommended to avoid rate limits when interacting with the PluralKit API.
+-   `LOG_LEVEL` (optional): Sets the logging verbosity. Can be one of `trace`, `debug`, `info`, `warn`, `error`, or `fatal`. Defaults to `info`.
+
+### 2. Channel Configuration
+
+Create a `channels.json` file in the root of the project. Add the IDs of the text channels you want the bot to monitor for media-only content.
+
+```json
+[
+    "channel_id_1",
+    "channel_id_2"
+]
+```
 
 ## Usage
 

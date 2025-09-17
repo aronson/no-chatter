@@ -11,21 +11,47 @@ import {
     User,
 } from "discord.js";
 import { Member, PKAPI, System } from "pkapi.js";
+import adze, { Level, setup } from "adze";
 
 // --- TOKEN CONFIG ---
 const BOT_TOKEN = Deno.env.get("BOT_TOKEN");
 if (!BOT_TOKEN) {
-    console.error("Error: BOT_TOKEN is not defined in the environment.");
+    adze.error("Error: BOT_TOKEN is not defined in the environment.");
     Deno.exit(1);
 }
 const PK_TOKEN = Deno.env.get("PK_TOKEN");
 if (!PK_TOKEN) {
-    console.warn(
+    adze.warn(
         "Error: PK_TOKEN is not defined in the environment. Rate limits on PluralKit API may be higher.",
     );
 }
+let activeLevel: Level | number = "info";
+const LOG_LEVEL = Deno.env.get("LOG_LEVEL");
+// Checks if the parsed LOG_LEVEL was a valid one for adze
+function isLevel(level: string | undefined): level is Level {
+    return (level as Level) !== undefined;
+}
+if (LOG_LEVEL) {
+    if (isLevel(LOG_LEVEL)) {
+        activeLevel = LOG_LEVEL;
+    } else {
+        // Attempt to parse numeric log levels as well
+        const logInt = parseInt("LOG_LEVEL");
+        if (!Number.isNaN(logInt)) {
+            activeLevel = logInt;
+        }
+    }
+}
 
 // --- CLIENT SETUP ---
+
+// ADZE.js presentation settings
+setup({
+    activeLevel: activeLevel,
+    format: "pretty",
+});
+const logger = adze.withEmoji.timestamp.seal();
+
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -62,30 +88,30 @@ async function loadChannels() {
                     if (channel instanceof TextChannel) {
                         return channel;
                     } else {
-                        console.error(
+                        logger.error(
                             "Provided channel was not a text channel...",
                             channel,
                         );
                     }
                 } catch (error) {
-                    console.error("Error fetching some channel...", error);
+                    logger.error("Error fetching some channel...", error);
                     return null;
                 }
             }))).filter(isProperChannel).map((channel) => {
                 return { name: channel.name, id: channel.id };
             });
-        console.log(
+        logger.log(
             "Successfully loaded the following media channels:",
             mediaChannelsWithNames,
         );
     } catch (error) {
         if (error instanceof Deno.errors.NotFound) {
-            console.warn(
+            logger.warn(
                 "channels.json not found. Creating an empty one. Please add channel IDs.",
             );
             await Deno.writeTextFile("./channels.json", "[]");
         } else {
-            console.error("Failed to load or parse channels.json:", error);
+            logger.error("Failed to load or parse channels.json:", error);
             Deno.exit(1);
         }
     }
@@ -172,7 +198,7 @@ const sendEphemeralMessage = async (
             message.delete().catch(() => {});
         }, EPHEMERAL_MESSAGE_DISPLAY_MS);
     } catch (e) {
-        console.error("Failed to send ephemeral retry message:", e);
+        logger.error("Failed to send ephemeral retry message:", e);
     }
 };
 
@@ -232,7 +258,7 @@ async function handleMoveToThread(
                 originalMessage,
                 `Your message in ${channel} was removed because it's a media-only channel and there wasn't a recent media post to start a discussion thread under.\n\n>>> ${content}`,
             ).catch(() =>
-                console.error(
+                logger.error(
                     `Could not inform user ${originalMessage.author.id} with ephemeral message.`,
                 )
             );
@@ -246,7 +272,7 @@ async function handleMoveToThread(
                         `Discussion for ${targetMessage.author.displayName}'s post`,
                     autoArchiveDuration: 60,
                 });
-                console.info("Created thread:", thread);
+                logger.info("Created thread:", thread);
                 // If the original message is from a system webhook it may be from PluralKit
                 if (targetMessage.author.bot && targetMessage.webhookId) {
                     // Test if PluralKit knows this original author
@@ -258,7 +284,7 @@ async function handleMoveToThread(
                             metadata.sender,
                         );
                         await thread.members.add(originalPoster.id);
-                        console.info(
+                        logger.info(
                             `Added original poster ${null} thread:`,
                             thread,
                         );
@@ -267,7 +293,7 @@ async function handleMoveToThread(
                     await thread.members.add(targetMessage.author.id);
                 }
             } catch (error) {
-                console.error("Error creating an initial thread:", error);
+                logger.error("Error creating an initial thread:", error);
                 return;
             }
         }
@@ -277,34 +303,34 @@ async function handleMoveToThread(
             allowedMentions: { parse: ["users"] },
         });
 
-        console.info("Proxied a message to a thread:", proxiedMessageResult);
+        logger.info("Proxied a message to a thread:", proxiedMessageResult);
 
         try {
             await thread.members.add(hostAuthor.id);
-            console.info(
+            logger.info(
                 `Added ${hostAuthor.username} to the thread "${thread.name}".`,
             );
         } catch (error) {
-            console.error("Error adding user to thread:", error);
+            logger.error("Error adding user to thread:", error);
         }
 
         await sendEphemeralMessage(
             originalMessage,
             `Your message in ${channel} has been moved to a discussion thread to keep the channel clean. You can find it here: ${thread}`,
         ).catch(() => {
-            console.error(
+            logger.error(
                 `Could not inform user ${originalMessage.author} in ${channel} with ephemeral message.`,
             );
         });
 
         await originalMessage.delete().catch(() => {}); // Ignore bad deletes
     } catch (error) {
-        console.error("handleMoveToThread failed:", error);
+        logger.error("handleMoveToThread failed:", error);
         await sendEphemeralMessage(
             originalMessage,
             `Your message in was removed because this is a media-only channel but something went wrong proxying it for you.\n\n>>> ${content}`,
         ).catch(() =>
-            console.error(
+            logger.error(
                 `Could not inform user ${originalMessage.author.id} with ephemeral message.`,
             )
         );
@@ -332,7 +358,7 @@ async function tryFetchPluralKitMetadataForMessage(message: Message) {
     try {
         return await pluralKitClient.getMessage({ message: message.id });
     } catch (error) {
-        console.warn("Error trying to fetch PluralKit metadata:", error);
+        logger.warn("Error trying to fetch PluralKit metadata:", error);
         return null;
     }
 }
@@ -393,11 +419,11 @@ async function handleProxiedMessage(proxyMessage: Message) {
                         originalMessage,
                         `Your message in ${channel} was removed because it's a media-only channel but something went wrong proxying it for you.\n\n>>> ${content}`,
                     ).catch(() =>
-                        console.error(
+                        logger.error(
                             `Could not inform user ${originalMessage.author.displayName} (${originalMessage.author.id}) with ephemeral message.`,
                         )
                     );
-                    console.error(
+                    logger.error(
                         `Error attempting to proxy PluralKit message:`,
                         error,
                     );
@@ -408,20 +434,20 @@ async function handleProxiedMessage(proxyMessage: Message) {
                     await proxyMessage.delete(); // Delete the proxied message
                 } catch (error) {
                     // Ignore failed deletes on Discord's side
-                    console.error(
+                    logger.error(
                         "Failed to delete PluralKit-proxied message:",
                         error,
                     );
                 }
             }
         } else {
-            console.warn(
+            logger.warn(
                 "Ignoring non-PluralKit message from a webhook in a media-only channel:",
                 proxyMessage,
             );
         }
     } catch (error) {
-        console.error("Error handling proxied message:", error);
+        logger.error("Error handling proxied message:", error);
     }
 }
 
@@ -451,7 +477,7 @@ setInterval(async () => {
 
 // --- EVENT HANDLERS ---
 client.once(Events.ClientReady, async (readyClient) => {
-    console.info(`Ready! Logged in as ${readyClient.user.displayName}`);
+    logger.info(`Ready! Logged in as ${readyClient.user.displayName}`);
     await loadChannels();
 });
 
@@ -476,7 +502,7 @@ client.on(Events.MessageCreate, incomingMessageCreateHandler);
 
 // --- LOGIN ---
 async function start() {
-    console.info("Logging in...");
+    logger.info("Logging in...");
     await client.login(BOT_TOKEN);
 }
 

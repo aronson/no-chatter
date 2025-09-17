@@ -1,6 +1,7 @@
 {
   "version": "5",
   "specifiers": {
+    "npm:adze@2.2.5": "2.2.5",
     "npm:discord.js@14": "14.22.0",
     "npm:pkapi.js@7.4.0": "7.4.0"
   },
@@ -85,11 +86,21 @@
         "@types/node"
       ]
     },
+    "@ungap/structured-clone@1.2.0": {
+      "integrity": "sha512-zuVdFrMJiuCDQUMCzQaD6KL28MjnqqN8XnAqiEq9PNm/hCPTSGfrXCOfwj1ow4LFb/tNymJPwsNbVePc1xFqrQ=="
+    },
     "@vladfrangu/async_event_emitter@2.4.6": {
       "integrity": "sha512-RaI5qZo6D2CVS6sTHFKg1v5Ohq/+Bo2LZ5gzUEwZ/WkHhwtGTCB/sVLw8ijOkAUxasZ+WshN/Rzj4ywsABJ5ZA=="
     },
     "@vvo/tzdb@6.183.0": {
       "integrity": "sha512-6C/4Lvv7jVHkfAsIEOMccZ4w1zmGAQxUVfdjZiYNu68+NMrFBVKyZZnmXeOWySihqDPxjO7FEbOpBuAf/ASKpg=="
+    },
+    "adze@2.2.5": {
+      "integrity": "sha512-QK+1EdcehjO1IRR8Bd4L7jhpeav+Enrp/cRLOlpHMsc4pdFTAKI5RI3rHqCakIVzq1RVZXCIzykMcD31ipiHAQ==",
+      "dependencies": [
+        "@ungap/structured-clone",
+        "picocolors"
+      ]
     },
     "axios@0.21.4": {
       "integrity": "sha512-ut5vewkiu8jjGBdqpM44XxjuCjq9LAKeHVmoVfHVzy8eHgxxq8SbAVQNovDA8mVi05kP0Ea/n/UzcSHcTJQfNg==",
@@ -142,6 +153,9 @@
     "magic-bytes.js@1.12.1": {
       "integrity": "sha512-ThQLOhN86ZkJ7qemtVRGYM+gRgR8GEXNli9H/PMvpnZsE44Xfh3wx9kGJaldg314v85m+bFW6WBMaVHJc/c3zA=="
     },
+    "picocolors@1.1.1": {
+      "integrity": "sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA=="
+    },
     "pkapi.js@7.4.0": {
       "integrity": "sha512-8miV5OGIx28WCz/b6usRuBu1qwJwvAb1QM2rARfb+MlrJGRfUGxJeUGQ7rRnqWXwHmmLlDL1jwO4mF4FEkuj4A==",
       "dependencies": [
@@ -182,6 +196,7 @@
   },
   "workspace": {
     "dependencies": [
+      "npm:adze@2.2.5",
       "npm:discord.js@14",
       "npm:pkapi.js@7.4.0"
     ]

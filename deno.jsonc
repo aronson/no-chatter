@@ -1,14 +1,15 @@
 {
-  "fmt": {
-    "indentWidth": 4
-  },
-  "tasks": {
-    "start": "deno run -A main.ts",
-    "prepare": "deno compile --allow-net --allow-env --allow-read=./.env.example --allow-read=./.env.defaults --allow-read=./.env --allow-read=./channels.json --allow-write=./channels.json --output no-chatter main.ts"
-  },
-  "imports": {
-    "discord.js": "npm:discord.js@14",
-    "pkapi.js": "npm:pkapi.js@7.4.0",
-    "dotenv/load": "https://deno.land/std@0.224.0/dotenv/load.ts"
-  }
+    "fmt": {
+        "indentWidth": 4
+    },
+    "tasks": {
+        "start": "deno run -A main.ts",
+        "prepare": "deno compile --allow-net --allow-env --allow-read=./.env.example --allow-read=./.env.defaults --allow-read=./.env --allow-read=./channels.json --allow-write=./channels.json --output no-chatter main.ts"
+    },
+    "imports": {
+        "discord.js": "npm:discord.js@14",
+        "adze": "npm:adze@2.2.5",
+        "pkapi.js": "npm:pkapi.js@7.4.0",
+        "dotenv/load": "https://deno.land/std@0.224.0/dotenv/load.ts"
+    }
 }
