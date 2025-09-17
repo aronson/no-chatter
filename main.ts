@@ -179,7 +179,11 @@ client.on(Events.MessageCreate, async (message: Message) => {
   if (!mediaChannelIds.includes(message.channel.id)) return;
   const isMedia = message.attachments.size > 0 || message.embeds.length > 0;
   if (isMedia) return;
-  if (message.reference) return;
+  // Forwarded messages
+  if (
+    message.reference && message.messageSnapshots &&
+    message.messageSnapshots.size > 0
+  ) return;
 
   const singleLinkRegex = new RegExp(
     /^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_.~+#?&//=]*)$/i,
