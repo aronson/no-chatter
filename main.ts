@@ -1,5 +1,6 @@
 import "dotenv/load";
 import {
+  AllowedMentionsTypes,
   Client,
   Events,
   GatewayIntentBits,
@@ -51,10 +52,11 @@ const pendingMessages = new Map<
   string,
   { originalMessage: Message; timestamp: number }
 >();
-const PENDING_MESSAGE_TIMEOUT_MS = 1500; // Time to wait for a PK proxy.
+const PENDING_MESSAGE_TIMEOUT_MS = 3000; // Time to wait for a PK proxy.
 
 async function handleMoveToThread(
   originalMessage: Message,
+  content: string,
   displayNameForThread: string,
 ) {
   try {
@@ -77,7 +79,7 @@ async function handleMoveToThread(
 
     if (!targetMessage) {
       await originalMessage.author.send(
-        `Your message in <#${channel.id}> was removed because it's a media-only channel and there wasn't a recent media post to start a discussion thread under.\n\n> ${originalMessage.content}`,
+        `Your message in <#${channel.id}> was removed because it's a media-only channel and there wasn't a recent media post to start a discussion thread under.\n\n> ${content}`,
       ).catch(() =>
         console.warn(`Could not DM user ${originalMessage.author.id}.`)
       );
@@ -94,15 +96,21 @@ async function handleMoveToThread(
     }
 
     await thread.send({
-      content: `**${displayNameForThread}**: ${originalMessage.content}`,
+      content: `**${displayNameForThread}**: ${content}`,
       allowedMentions: { parse: [] },
     });
 
     await originalMessage.author.send(
-      `Your message in <#${channel.id}> has been moved to a discussion thread to keep the channel clean. You can find it here: ${thread.url}\n\n> ${originalMessage.content}`,
-    ).catch(() =>
-      console.warn(`Could not DM user ${originalMessage.author.id}.`)
-    );
+      `Your message in <#${channel.id}> has been moved to a discussion thread to keep the channel clean. You can find it here: ${thread.url}\n\n> ${content}`,
+    ).catch(async () => {
+      console.warn(`Could not DM user ${originalMessage.author.id}.`);
+      // Can't DM user... ping them in the thread
+      await thread.send({
+        content:
+          `${originalMessage.author} Your message was redirected here (I can't DM you so I'm pinging you to add to you this thread).`,
+        allowedMentions: { parse: [AllowedMentionsTypes.User] },
+      });
+    });
 
     await originalMessage.delete().catch(() => {}); // Ignore bad deletes
   } catch (error) {
@@ -117,6 +125,7 @@ function sleep(ms: number): Promise<void> {
 async function handleProxiedMessage(proxyMessage: Message) {
   try {
     let originalAuthorId = proxyMessage.author.id;
+    await sleep(500);
     const response = await fetch(
       `https://api.pluralkit.me/v2/messages/${proxyMessage.id}`,
     );
@@ -129,9 +138,11 @@ async function handleProxiedMessage(proxyMessage: Message) {
       if (pending) {
         pendingMessages.delete(key);
 
-        await sleep(2000);
-
-        await handleMoveToThread(pending.originalMessage, displayName);
+        await handleMoveToThread(
+          pending.originalMessage,
+          proxyMessage.content,
+          displayName,
+        );
 
         try {
           await proxyMessage.delete(); // Delete the proxied message
@@ -163,6 +174,7 @@ setInterval(async () => {
       pendingMessages.delete(key);
       await handleMoveToThread(
         originalMessage,
+        originalMessage.content,
         originalMessage.author.displayName,
       );
     }
@@ -177,8 +189,8 @@ client.once(Events.ClientReady, (readyClient) => {
 client.on(Events.MessageCreate, async (message: Message) => {
   if ((message.author.bot && !message.webhookId) || !message.guild) return;
   if (!mediaChannelIds.includes(message.channel.id)) return;
-  const isMedia = message.attachments.size > 0 || message.embeds.length > 0;
-  if (isMedia) return;
+  // Message with attachments
+  if (message.attachments.size > 0) return;
   // Forwarded messages
   if (
     message.reference && message.messageSnapshots &&
