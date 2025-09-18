@@ -482,6 +482,15 @@ client.once(Events.ClientReady, async (readyClient) => {
 });
 
 async function incomingMessageCreateHandler(message: Message) {
+    // If the incoming message is our own thread creation message, clean it up to be tidy
+    if (
+        message.type == MessageType.ThreadCreated &&
+        message.author.id == client.user?.id
+    ) {
+        await message.delete();
+        return;
+    }
+
     // If an incoming message is "allowed" do nothing and exit early
     if (await isAllowedInMediaOnlyContext(message)) return;
 
